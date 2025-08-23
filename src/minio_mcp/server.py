@@ -1,38 +1,31 @@
-"""
-FastMCP quickstart example.
-
-cd to the `examples/snippets/clients` directory and run:
-    uv run server fastmcp_quickstart stdio
-"""
-
+# server.py
 from mcp.server.fastmcp import FastMCP
 
 # Create an MCP server
-mcp = FastMCP("Demo")
+mcp = FastMCP(
+    "MINIO MCP Server",
+    host="0.0.0.0",
+    port=8000,
+)
 
 
-# Add an addition tool
+# Simple tool
 @mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    return a + b
+def say_hello(name: str) -> str:
+    """Say hello to someone
+
+    Args:
+        name: The person's name to greet
+    """
+    return f"Hello, {name}! Nice to meet you."
 
 
-# Add a dynamic greeting resource
-@mcp.resource("greeting://{name}")
-def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
-    return f"Hello, {name}!"
-
-
-# Add a prompt
-@mcp.prompt()
-def greet_user(name: str, style: str = "friendly") -> str:
-    """Generate a greeting prompt"""
-    styles = {
-        "friendly": "Please write a warm, friendly greeting",
-        "formal": "Please write a formal, professional greeting",
-        "casual": "Please write a casual, relaxed greeting",
-    }
-
-    return f"{styles.get(style, styles['friendly'])} for someone named {name}."
+# Run the server
+if __name__ == "__main__":
+    transport = "stdio"  # Use standard input/output for communication
+    if transport == "stdio":
+        mcp.run(transport="stdio")
+    elif transport == "streamable-http":
+        mcp.run(transport="streamable-http")
+    else:
+        raise ValueError("Unsupported transport method")
