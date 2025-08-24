@@ -1,5 +1,9 @@
+from minio_mcp.server import mcp
+
+
 def main():
-    print("Hello from minio-mcp-server!")
+    # Initialize and run the server
+    mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":
