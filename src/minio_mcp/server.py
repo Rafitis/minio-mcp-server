@@ -76,6 +76,47 @@ async def list_objects(bucket_name: str, prefix: str = "", limit: int = 25) -> d
     return result.response
 
 
+@mcp.tool()
+async def create_bucket(bucket_name: str) -> str:
+    """Create a new bucket in the MinIO server.
+
+    Args:
+        bucket_name: The name of the bucket to create
+    """
+
+    bucket_tools = BucketTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+
+    result = await bucket_tools.create_bucket(bucket_name)
+    if result.status_code != 200:
+        return f"Error creating bucket: {result.error}"
+    return f"Bucket '{bucket_name}' created successfully."
+
+
+@mcp.tool()
+async def delete_bucket(bucket_name: str, force: bool = False) -> str:
+    """Delete a bucket from the MinIO server.
+
+    Args:
+        bucket_name: The name of the bucket to delete
+        force: If True, delete all objects in the bucket before deleting the bucket,
+    """
+
+    bucket_tools = BucketTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+
+    result = await bucket_tools.delete_bucket(bucket_name, force)
+    if result.status_code != 200:
+        return f"Error deleting bucket: {result.error}"
+    return f"Bucket '{bucket_name}' deleted successfully."
+
+
 # Run the server
 if __name__ == "__main__":
     transport = "stdio"  # Use standard input/output for communication
