@@ -67,6 +67,9 @@ uv run minio-mcp-server test-connection
 
 # Run with debug logging
 uv run minio-mcp-server run --log-level DEBUG
+
+# Test with MCP Inspector (interactive testing)
+uv run mcp src/minio_mcp/server.py
 ```
 
 ## Architecture

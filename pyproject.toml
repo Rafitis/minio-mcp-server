@@ -101,6 +101,7 @@ module = "minio.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+pythonpath = "src/minio_mcp"
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --cov=src/minio_mcp --cov-report=term-missing"
 testpaths = ["tests"]

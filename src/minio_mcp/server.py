@@ -1,38 +1,87 @@
-"""
-FastMCP quickstart example.
-
-cd to the `examples/snippets/clients` directory and run:
-    uv run server fastmcp_quickstart stdio
-"""
-
 from mcp.server.fastmcp import FastMCP
 
+from minio_mcp.tools.bucket_tools import BucketTools
+
 # Create an MCP server
-mcp = FastMCP("Demo")
+mcp = FastMCP(
+    "MINIO MCP Server",
+    host="0.0.0.0",
+    port=8000,
+)
 
 
-# Add an addition tool
+# Simple tool
 @mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    return a + b
+def say_hello(name: str) -> str:
+    """Say hello to someone
+
+    Args:
+        name: The person's name to greet
+    """
+    return f"Hello, {name}! Nice to meet you."
 
 
-# Add a dynamic greeting resource
-@mcp.resource("greeting://{name}")
-def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
-    return f"Hello, {name}!"
+@mcp.tool()
+async def list_buckets() -> dict:
+    """List all buckets in the MinIO server."""
+
+    bucket_tools = BucketTools()
+    result = await bucket_tools.list_buckets()
+    if result.status_code != 200:
+        return f"Error listing buckets: {result.error}"
+    return result.response
 
 
-# Add a prompt
-@mcp.prompt()
-def greet_user(name: str, style: str = "friendly") -> str:
-    """Generate a greeting prompt"""
-    styles = {
-        "friendly": "Please write a warm, friendly greeting",
-        "formal": "Please write a formal, professional greeting",
-        "casual": "Please write a casual, relaxed greeting",
-    }
+@mcp.tool()
+async def get_bucket_info(bucket_name: str) -> dict:
+    """Get information about a specific bucket.
 
-    return f"{styles.get(style, styles['friendly'])} for someone named {name}."
+    Args:
+        bucket_name: The name of the bucket to get information about
+    """
+
+    bucket_tools = BucketTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+
+    result = await bucket_tools.get_bucket_info(bucket_name)
+    if result.status_code != 200:
+        return f"Error getting bucket info: {result.error}"
+    return result.response
+
+
+@mcp.tool()
+async def list_objects(bucket_name: str, prefix: str = "", limit: int = 25) -> dict:
+    """List objects in a specific bucket.
+
+    Args:
+        bucket_name: The name of the bucket to list objects from
+        prefix: (Optional) Filter objects by prefix
+        limit: (Optional) Limit the number of objects returned limit=-1 for no limit
+    """
+
+    bucket_tools = BucketTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+    if not isinstance(prefix, str):
+        return "Error: 'prefix' must be a string."
+
+    result = await bucket_tools.list_objects(bucket_name, prefix, limit)
+    if result.status_code != 200:
+        return f"Error listing objects: {result.error}"
+    return result.response
+
+
+# Run the server
+if __name__ == "__main__":
+    transport = "stdio"  # Use standard input/output for communication
+    if transport == "stdio":
+        mcp.run(transport="stdio")
+    elif transport == "streamable-http":
+        mcp.run(transport="streamable-http")
+    else:
+        raise ValueError("Unsupported transport method")
