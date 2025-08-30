@@ -2,7 +2,8 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from infraestructure.minio_client import FailedConnectionError, MinioClient
+
+from minio_mcp.infrastructure.minio_client import FailedConnectionError, MinioClient
 
 
 class TestMinioClient:
@@ -15,7 +16,7 @@ class TestMinioClient:
             "MINIO_SECURE": "false",
         },
     )
-    @patch("infraestructure.minio_client.Minio")
+    @patch("minio_mcp.infrastructure.minio_client.Minio")
     def test_succesfull_connection(self, mock_minio_class):
         mock_client = Mock()
         mock_client.list_buckets.return_value = iter([])
@@ -30,7 +31,7 @@ class TestMinioClient:
             secure=False,
         )
 
-    @patch("infraestructure.minio_client.Minio")
+    @patch("minio_mcp.infrastructure.minio_client.Minio")
     def test_connection_failure(self, mock_minio_class):
         mock_minio_class.side_effect = Exception("Failed to create a client")
 
