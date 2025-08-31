@@ -116,3 +116,6 @@ MANIFEST
 
 # AI tools
 CLAUDE.md
+
+# Internal documentation
+docs/

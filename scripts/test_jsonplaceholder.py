@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-import sys
 import json
+import sys
+
 import requests
 
 URL = "https://jsonplaceholder.typicode.com/posts/1"
