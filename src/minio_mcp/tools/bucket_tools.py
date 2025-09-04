@@ -166,3 +166,75 @@ class BucketTools:
             status_code=200,
         )
         return text_content
+
+    async def create_bucket(self, bucket_name: str) -> TextContent:
+        """Create a new bucket in the MinIO server."""
+
+        if "/" in bucket_name:
+            return TextContent(
+                response={},
+                error="Bucket name cannot contain '/' character.",
+                status_code=400,
+            )
+
+        # Check if bucket already exists
+        if self.minio_client.client.bucket_exists(bucket_name):
+            return TextContent(
+                response={},
+                error=f"Bucket '{bucket_name}' already exists.",
+                status_code=409,
+            )
+
+        try:
+            self.minio_client.client.make_bucket(bucket_name)
+        except Exception as e:
+            text_content = TextContent(
+                response={},
+                error=str(e),
+                status_code=500,
+            )
+            return text_content
+
+        text_content = TextContent(
+            response={"message": f"Bucket '{bucket_name}' created successfully."},
+            status_code=200,
+        )
+        return text_content
+
+    async def delete_bucket(self, bucket_name: str, force: bool = False) -> TextContent:
+        """Delete a bucket from the MinIO server."""
+
+        if not self.minio_client.client.bucket_exists(bucket_name):
+            return TextContent(
+                response={},
+                error=f"Bucket '{bucket_name}' does not exist.",
+                status_code=404,
+            )
+
+        if any(self.minio_client.client.list_objects(bucket_name, recursive=True)):
+            if not force:
+                return TextContent(
+                    response={},
+                    error=f"Bucket '{bucket_name}' is not empty. Use force=True to delete it along with its contents.",  # noqa: E501
+                    status_code=400,
+                )
+
+        try:
+            if force:
+                objects = self.minio_client.client.list_objects(bucket_name, recursive=True)
+                for obj in objects:
+                    self.minio_client.client.remove_object(bucket_name, obj.object_name)
+            self.minio_client.client.remove_bucket(bucket_name)
+        except Exception as e:
+            text_content = TextContent(
+                response={},
+                error=str(e),
+                status_code=500,
+            )
+            return text_content
+
+        text_content = TextContent(
+            response={"message": f"Bucket '{bucket_name}' deleted successfully."},
+            status_code=200,
+        )
+        return text_content
