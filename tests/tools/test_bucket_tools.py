@@ -1,4 +1,3 @@
-from unittest import mock
 from unittest.mock import Mock, patch
 
 from minio_mcp.tools.bucket_tools import BucketTools

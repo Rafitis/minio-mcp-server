@@ -46,6 +46,7 @@ Issues = "https://github.com/yourusername/minio-mcp-server/issues"
 
 [project.scripts]
 minio-mcp-server = "minio_mcp.server:main"
+minio-chat = "minio_mcp.chat_client:main"
 
 [build-system]
 requires = ["hatchling"]
