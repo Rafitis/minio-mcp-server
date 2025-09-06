@@ -1,6 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 
 from minio_mcp.tools.bucket_tools import BucketTools
+from minio_mcp.tools.object_tools import ObjectTools
 
 # Create an MCP server
 mcp = FastMCP(
@@ -115,6 +116,31 @@ async def delete_bucket(bucket_name: str, force: bool = False) -> str:
     if result.status_code != 200:
         return f"Error deleting bucket: {result.error}"
     return f"Bucket '{bucket_name}' deleted successfully."
+
+
+@mcp.tool()
+async def get_object_info(bucket_name: str, object_name: str) -> dict:
+    """Get information about a specific object in a bucket.
+
+    Args:
+        bucket_name: The name of the bucket containing the object
+        object_name: The name of the object to get information about
+    """
+
+    object_tools = ObjectTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+    if not object_name:
+        return "Error: 'object_name' parameter is required."
+    if not isinstance(object_name, str):
+        return "Error: 'object_name' must be a string."
+
+    result = await object_tools.get_object_info(bucket_name, object_name)
+    if result.status_code != 200:
+        return f"Error getting object info: {result.error}"
+    return result.response
 
 
 # Run the server
