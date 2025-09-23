@@ -1,3 +1,4 @@
+import httpx
 from mcp.server.fastmcp import FastMCP
 
 from minio_mcp.tools.bucket_tools import BucketTools
@@ -115,7 +116,6 @@ async def delete_bucket(bucket_name: str, force: bool = False) -> str:
     if result.status_code != 200:
         return f"Error deleting bucket: {result.error}"
     return f"Bucket '{bucket_name}' deleted successfully."
-
 
 # Run the server
 if __name__ == "__main__":
