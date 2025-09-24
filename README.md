@@ -4,7 +4,7 @@ A Model Context Protocol (MCP) server that provides a bridge between MCP-compati
 
 ## Features
 
-- **6 MCP Tools** organized by domain for comprehensive MinIO operations:
+- **7 MCP Tools** organized by domain for comprehensive MinIO operations:
 
 ### Bucket Management
   - `list_buckets`: List all available buckets with creation dates
@@ -12,9 +12,10 @@ A Model Context Protocol (MCP) server that provides a bridge between MCP-compati
   - `create_bucket`: Create new buckets with name validation and existence checks
   - `delete_bucket`: Delete buckets (empty only) or force delete with all contents
 
-### Object Management  
+### Object Management
   - `list_objects`: List objects with filtering (prefix, recursive) and configurable limits (default 25)
   - `get_object_info`: Get detailed object metadata (size, content-type, etag, version info, custom metadata)
+  - `delete_object`: Delete objects from buckets with optional version support for versioned objects
 
 ### Key Features
 - **FastMCP Integration**: Built on FastMCP framework for robust MCP protocol support
@@ -122,6 +123,7 @@ Try commands like:
 - "Show me information about the 'my-bucket' bucket"
 - "List the first 10 objects in 'my-bucket'"
 - "Get information about 'file.txt' in 'my-bucket'"
+- "Delete 'old-file.txt' from 'my-bucket'"
 
 ## Architecture
 
