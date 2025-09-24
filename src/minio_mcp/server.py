@@ -143,6 +143,33 @@ async def get_object_info(bucket_name: str, object_name: str) -> dict:
     return result.response
 
 
+@mcp.tool()
+async def delete_object(bucket_name: str, object_name: str, version_id: str = None) -> str:
+    """Delete a specific object from a bucket.
+    Args:
+        bucket_name: The name of the bucket containing the object
+        object_name: The name of the object to delete
+        version_id: (Optional) The version ID of the object to delete
+    """
+
+    object_tools = ObjectTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+    if not object_name:
+        return "Error: 'object_name' parameter is required."
+    if not isinstance(object_name, str):
+        return "Error: 'object_name' must be a string."
+    if version_id is not None and not isinstance(version_id, str):
+        return "Error: 'version_id' must be a string if provided."
+
+    result = await object_tools.delete_object(bucket_name, object_name, version_id)
+    if result.status_code != 200:
+        return f"Error deleting object: {result.error}"
+    return f"Object '{object_name}' deleted successfully from bucket '{bucket_name}'."
+
+
 # Run the server
 if __name__ == "__main__":
     transport = "stdio"  # Use standard input/output for communication

@@ -52,3 +52,47 @@ class ObjectTools:
             status_code=200,
         )
         return text_content
+
+    async def delete_object(
+        self, bucket_name: str, object_name: str, version_id: str | None = None
+    ) -> TextContent:
+        """Delete a specific object from a bucket."""
+        if not self.minio_client.client.bucket_exists(bucket_name):
+            text_content = TextContent(
+                response={},
+                error=f"Bucket '{bucket_name}' does not exist.",
+                status_code=404,
+            )
+            return text_content
+
+        try:
+            if version_id:
+                self.minio_client.client.remove_object(
+                    bucket_name, object_name, version_id=version_id
+                )
+            else:
+                self.minio_client.client.remove_object(bucket_name, object_name)
+        except ValueError:
+            text_content = TextContent(
+                response={},
+                error=f"Object '{object_name}' does not exist in bucket '{bucket_name}'.",
+                status_code=404,
+            )
+            return text_content
+        except Exception as e:
+            text_content = TextContent(
+                response={},
+                error=str(e),
+                status_code=500,
+            )
+            return text_content
+
+        text_content = TextContent(
+            response={
+                "message": (
+                    f"Object '{object_name}' deleted successfully from bucket '{bucket_name}'."
+                )
+            },
+            status_code=200,
+        )
+        return text_content
