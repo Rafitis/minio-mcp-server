@@ -4,19 +4,25 @@ A Model Context Protocol (MCP) server that provides a bridge between MCP-compati
 
 ## Features
 
-- **7 MCP Tools** for comprehensive MinIO operations:
-  - `list_buckets`: List all available buckets
-  - `get_bucket_info`: Get detailed bucket information (size, object count, policies)
-  - `list_objects`: List objects with filtering (prefix, recursive, limit)
-  - `get_object_info`: Get object metadata and information
-  - `create_bucket`: Create new buckets with optional location
-  - `delete_bucket`: Delete buckets with optional force flag
-  - `test_connection`: Test MinIO server connectivity
+- **6 MCP Tools** organized by domain for comprehensive MinIO operations:
 
+### Bucket Management
+  - `list_buckets`: List all available buckets with creation dates
+  - `get_bucket_info`: Get detailed bucket information (metadata, policies, object count, total size, encryption)
+  - `create_bucket`: Create new buckets with name validation and existence checks
+  - `delete_bucket`: Delete buckets (empty only) or force delete with all contents
+
+### Object Management  
+  - `list_objects`: List objects with filtering (prefix, recursive) and configurable limits (default 25)
+  - `get_object_info`: Get detailed object metadata (size, content-type, etag, version info, custom metadata)
+
+### Key Features
+- **FastMCP Integration**: Built on FastMCP framework for robust MCP protocol support
+- **Comprehensive Validation**: Input validation, error handling with appropriate HTTP status codes (400, 404, 409, 500)
 - **Async Architecture**: Full async/await support for MCP protocol compliance
-- **Robust Error Handling**: Comprehensive error handling with formatted responses
-- **Configuration Management**: Pydantic-based config with environment variable support
-- **Type Safety**: Full type checking with mypy
+- **Modular Design**: Separated concerns with BucketTools and ObjectTools classes
+- **Extensive Testing**: 100% test coverage with advanced mocking techniques
+- **Standardized Responses**: Consistent error handling via TextContent entity
 
 ## Quick Start
 
@@ -59,32 +65,78 @@ MINIO_LOG_LEVEL=INFO
 ### Running the Server
 
 ```bash
-# Start the MCP server
-uv run minio-mcp-server run
-
-# Test your MinIO connection
-uv run minio-mcp-server test-connection
-
-# Run with debug logging
-uv run minio-mcp-server run --log-level DEBUG
+# Start the MCP server (stdio transport for Claude Desktop)
+uv run python src/minio_mcp/server.py
 
 # Test with MCP Inspector (interactive testing)
 uv run mcp src/minio_mcp/server.py
+
+# Alternative: Direct python execution
+cd src/minio_mcp
+python server.py
 ```
+
+## Using with Claude Desktop
+
+To connect this MCP server with Claude Desktop:
+
+### 1. Configure Claude Desktop
+
+Edit your Claude Desktop configuration file:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%/Claude/claude_desktop_config.json`
+
+Add this configuration (adjust paths for your system):
+
+```json
+{
+  "mcpServers": {
+    "minio-mcp-server": {
+      "command": "/Users/your_username/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/path/to/your/minio-mcp-server",
+        "run",
+        "python",
+        "src/minio_mcp/server.py"
+      ],
+      "env": {
+        "MINIO_ENDPOINT": "localhost:9000",
+        "MINIO_ACCESS_KEY": "minioadmin",
+        "MINIO_SECRET_KEY": "minioadmin",
+        "MINIO_SECURE": "false"
+      }
+    }
+  }
+}
+```
+
+### 2. Restart Claude Desktop
+
+After saving the configuration, completely restart Claude Desktop.
+
+### 3. Test the Connection
+
+Try commands like:
+- "List all buckets in MinIO"
+- "Show me information about the 'my-bucket' bucket"
+- "List the first 10 objects in 'my-bucket'"
+- "Get information about 'file.txt' in 'my-bucket'"
 
 ## Architecture
 
 ### Core Components
 
-- **MinIOMCPServer**: Main MCP protocol handler and coordinator
-- **MinIOService**: Async wrapper for MinIO Python client operations  
-- **BucketTools**: Business logic and MCP tool implementations
-- **Configuration**: Pydantic-based configuration management
+- **FastMCP Server** (`server.py`): Main MCP protocol handler using FastMCP framework
+- **MinioClient** (`infrastructure/minio_client.py`): Infrastructure layer with MinIO client management and configuration  
+- **BucketTools** (`tools/bucket_tools.py`): Business logic for bucket operations with validation and error handling
+- **ObjectTools** (`tools/object_tools.py`): Business logic for object operations with comprehensive metadata extraction
+- **TextContent** (`tools/entities.py`): Standardized response entity for consistent error handling
 
 ### Data Flow
 
 ```
-MCP Client → MinIOMCPServer → BucketTools → MinIOService → MinIO Server
+MCP Client → FastMCP Server → BucketTools/ObjectTools → MinioClient → MinIO Server
 ```
 
 ## Configuration Options
@@ -96,7 +148,7 @@ MCP Client → MinIOMCPServer → BucketTools → MinIOService → MinIO Server
 | `MINIO_SECRET_KEY` | Secret key for authentication | Required |
 | `MINIO_SECURE` | Use HTTPS (true/false) | `true` |
 | `MINIO_LOG_LEVEL` | Logging level (DEBUG/INFO/WARNING/ERROR) | `INFO` |
-| `MINIO_MAX_OBJECTS_LIST` | Maximum objects per list operation | `1000` |
+| `MINIO_MAX_OBJECTS_LIST` | Maximum objects per list operation | `25` |
 
 ## Development
 
@@ -119,8 +171,13 @@ uv run pytest
 # Run with coverage report
 uv run pytest --cov=src/minio_mcp --cov-report=html
 
-# Run specific tests
-uv run pytest tests/test_config.py -v
+# Run specific test files
+uv run pytest tests/tools/test_bucket_tools.py -v
+uv run pytest tests/tools/test_object_tools.py -v
+uv run pytest tests/infrastructure/test_minio_client.py -v
+
+# Test specific functionality
+uv run pytest -k "test_create_bucket" -v
 ```
 
 ### Code Quality
