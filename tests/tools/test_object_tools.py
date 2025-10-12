@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 from minio_mcp.tools.object_tools import ObjectTools
@@ -250,3 +250,140 @@ class TestObjectTools:
 
         mock_client.bucket_exists.assert_called_once_with(bucket_name)
         mock_client.remove_object.assert_called_once_with(bucket_name, object_name)
+
+    @patch("minio_mcp.tools.object_tools.MinioClient")
+    async def test_generate_presigned_url_success(self, mock_minio_client_class):
+        # Setup mocks
+        mock_client = Mock()
+        mock_minio_client_instance = Mock()
+        mock_minio_client_instance.client = mock_client
+        mock_minio_client_class.return_value = mock_minio_client_instance
+
+        # Mock bucket exists and presigned URL generation succeeds
+        mock_client.bucket_exists.return_value = True
+        expected_url = "http://localhost:9000/test-bucket/test-file.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=..."
+        mock_client.presigned_get_object.return_value = expected_url
+
+        object_tools = ObjectTools()
+        bucket_name = "test-bucket"
+        object_name = "test-file.txt"
+        expiry = 3600
+        result = await object_tools.generate_presigned_url(bucket_name, object_name, expiry)
+
+        # Assertions
+        assert result.status_code == 200
+        assert isinstance(result.response, dict)
+        assert result.response["presigned_url"] == expected_url
+        assert result.error is None
+
+        mock_client.bucket_exists.assert_called_once_with(bucket_name)
+        mock_client.presigned_get_object.assert_called_once_with(
+            bucket_name, object_name, expires=timedelta(seconds=expiry)
+        )
+
+    @patch("minio_mcp.tools.object_tools.MinioClient")
+    async def test_generate_presigned_url_default_expiry(self, mock_minio_client_class):
+        # Setup mocks
+        mock_client = Mock()
+        mock_minio_client_instance = Mock()
+        mock_minio_client_instance.client = mock_client
+        mock_minio_client_class.return_value = mock_minio_client_instance
+
+        # Mock bucket exists and presigned URL generation succeeds with default expiry
+        mock_client.bucket_exists.return_value = True
+        expected_url = "http://localhost:9000/test-bucket/test-file.txt?X-Amz-Algorithm=..."
+        mock_client.presigned_get_object.return_value = expected_url
+
+        object_tools = ObjectTools()
+        bucket_name = "test-bucket"
+        object_name = "test-file.txt"
+        result = await object_tools.generate_presigned_url(bucket_name, object_name)
+
+        # Assertions
+        assert result.status_code == 200
+        assert isinstance(result.response, dict)
+        assert result.response["presigned_url"] == expected_url
+        assert result.error is None
+
+        mock_client.bucket_exists.assert_called_once_with(bucket_name)
+        mock_client.presigned_get_object.assert_called_once_with(
+            bucket_name, object_name, expires=timedelta(seconds=3600)  # Default value
+        )
+
+    @patch("minio_mcp.tools.object_tools.MinioClient")
+    async def test_generate_presigned_url_bucket_not_exists(self, mock_minio_client_class):
+        # Setup mocks
+        mock_client = Mock()
+        mock_minio_client_instance = Mock()
+        mock_minio_client_instance.client = mock_client
+        mock_minio_client_class.return_value = mock_minio_client_instance
+
+        # Mock bucket does not exist
+        mock_client.bucket_exists.return_value = False
+
+        object_tools = ObjectTools()
+        bucket_name = "nonexistent-bucket"
+        object_name = "test-file.txt"
+        result = await object_tools.generate_presigned_url(bucket_name, object_name)
+
+        # Assertions
+        assert result.status_code == 404
+        assert result.error == f"Bucket '{bucket_name}' does not exist."
+        assert result.response == {}
+
+        mock_client.bucket_exists.assert_called_once_with(bucket_name)
+        mock_client.presigned_get_object.assert_not_called()
+
+    @patch("minio_mcp.tools.object_tools.MinioClient")
+    async def test_generate_presigned_url_object_not_found(self, mock_minio_client_class):
+        # Setup mocks
+        mock_client = Mock()
+        mock_minio_client_instance = Mock()
+        mock_minio_client_instance.client = mock_client
+        mock_minio_client_class.return_value = mock_minio_client_instance
+
+        # Mock bucket exists but object does not
+        mock_client.bucket_exists.return_value = True
+        mock_client.presigned_get_object.side_effect = ValueError("Object not found")
+
+        object_tools = ObjectTools()
+        bucket_name = "test-bucket"
+        object_name = "nonexistent-file.txt"
+        result = await object_tools.generate_presigned_url(bucket_name, object_name)
+
+        # Assertions
+        assert result.status_code == 404
+        assert result.error == f"Object '{object_name}' does not exist in bucket '{bucket_name}'."
+        assert result.response == {}
+
+        mock_client.bucket_exists.assert_called_once_with(bucket_name)
+        mock_client.presigned_get_object.assert_called_once_with(
+            bucket_name, object_name, expires=timedelta(seconds=3600)
+        )
+
+    @patch("minio_mcp.tools.object_tools.MinioClient")
+    async def test_generate_presigned_url_general_error(self, mock_minio_client_class):
+        # Setup mocks
+        mock_client = Mock()
+        mock_minio_client_instance = Mock()
+        mock_minio_client_instance.client = mock_client
+        mock_minio_client_class.return_value = mock_minio_client_instance
+
+        # Mock bucket exists but presigned_get_object fails with general error
+        mock_client.bucket_exists.return_value = True
+        mock_client.presigned_get_object.side_effect = Exception("Connection error")
+
+        object_tools = ObjectTools()
+        bucket_name = "test-bucket"
+        object_name = "test-file.txt"
+        result = await object_tools.generate_presigned_url(bucket_name, object_name)
+
+        # Assertions
+        assert result.status_code == 500
+        assert result.error == "Connection error"
+        assert result.response == {}
+
+        mock_client.bucket_exists.assert_called_once_with(bucket_name)
+        mock_client.presigned_get_object.assert_called_once_with(
+            bucket_name, object_name, expires=timedelta(seconds=3600)
+        )

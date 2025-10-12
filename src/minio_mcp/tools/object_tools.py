@@ -1,3 +1,5 @@
+from datetime import timedelta
+from typing import Text
 from minio_mcp.infrastructure.minio_client import MinioClient
 from minio_mcp.tools.entities import TextContent
 
@@ -93,6 +95,43 @@ class ObjectTools:
                     f"Object '{object_name}' deleted successfully from bucket '{bucket_name}'."
                 )
             },
+            status_code=200,
+        )
+        return text_content
+
+    async def generate_presigned_url(
+        self, bucket_name: str, object_name: str, expiry: int = 3600
+    ) -> TextContent:
+        """Generate a presigned URL for accessing an object."""
+        if not self.minio_client.client.bucket_exists(bucket_name):
+            text_content = TextContent(
+                response={},
+                error=f"Bucket '{bucket_name}' does not exist.",
+                status_code=404,
+            )
+            return text_content
+
+        try:
+            url = self.minio_client.client.presigned_get_object(
+                bucket_name, object_name, expires=timedelta(seconds=expiry)
+            )
+        except ValueError:
+            text_content = TextContent(
+                response={},
+                error=f"Object '{object_name}' does not exist in bucket '{bucket_name}'.",
+                status_code=404,
+            )
+            return text_content
+        except Exception as e:
+            text_content = TextContent(
+                response={},
+                error=str(e),
+                status_code=500,
+            )
+            return text_content
+
+        text_content = TextContent(
+            response={"presigned_url": url},
             status_code=200,
         )
         return text_content
