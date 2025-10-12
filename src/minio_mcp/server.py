@@ -170,6 +170,40 @@ async def delete_object(bucket_name: str, object_name: str, version_id: str = No
     return f"Object '{object_name}' deleted successfully from bucket '{bucket_name}'."
 
 
+@mcp.tool()
+async def generate_presigned_url(
+    bucket_name: str,
+    object_name: str,
+    expiry: int = 3600,
+) -> str:
+    """Generate a presigned URL for an object in a bucket.
+
+    Args:
+        bucket_name: The name of the bucket containing the object
+        object_name: The name of the object to generate a presigned URL for
+        expiry: (Optional) Expiry time in seconds for the presigned URL (default is 3600 seconds)
+    """
+
+    object_tools = ObjectTools()
+    if not bucket_name:
+        return "Error: 'bucket_name' parameter is required."
+    if not isinstance(bucket_name, str):
+        return "Error: 'bucket_name' must be a string."
+    if not object_name:
+        return "Error: 'object_name' parameter is required."
+    if not isinstance(object_name, str):
+        return "Error: 'object_name' must be a string."
+    if not isinstance(expiry, int) or expiry <= 0:
+        return "Error: 'expiry' must be a positive integer."
+    if expiry > 604800:  # 7 days max
+        return "Error: 'expiry' cannot exceed 604800 seconds (7 days)."
+
+    result = await object_tools.generate_presigned_url(bucket_name, object_name, expiry)
+    if result.status_code != 200:
+        return f"Error generating presigned URL: {result.error}"
+    return result.response.get("presigned_url", "")
+
+
 # Run the server
 if __name__ == "__main__":
     transport = "stdio"  # Use standard input/output for communication
